@@ -58,18 +58,64 @@ function Invoke-Passo {
     }
 }
 
-function Invoke-Compose { param([string[]]$Argumentos) Invoke-Passo "docker" (@("compose") + $Argumentos) }
+$script:DockerOk = $false
+function Invoke-Compose {
+    param([string[]]$Argumentos)
+    if (-not $script:DockerOk) { Test-Docker; $script:DockerOk = $true }
+    Invoke-Passo "docker" (@("compose") + $Argumentos)
+}
 function Invoke-Api     { param([string[]]$Argumentos) Invoke-Compose (@("exec", "api") + $Argumentos) }
 function Invoke-Front   { param([string[]]$Argumentos) Invoke-Compose (@("exec", "frontend") + $Argumentos) }
 
+function Test-DockerEngine {
+    # No Windows PowerShell 5.1, redirecionar a saida de erro de um programa com
+    # ErrorActionPreference = Stop vira excecao. Por isso relaxamos so aqui.
+    $anterior = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        docker info *> $null
+        return ($LASTEXITCODE -eq 0)
+    } catch {
+        return $false
+    } finally {
+        $ErrorActionPreference = $anterior
+    }
+}
+
+function Find-DockerDesktop {
+    $candidatos = @()
+    if ($env:ProgramFiles) { $candidatos += Join-Path $env:ProgramFiles "Docker\Docker\Docker Desktop.exe" }
+    if ($env:LOCALAPPDATA) { $candidatos += Join-Path $env:LOCALAPPDATA "Docker\Docker Desktop.exe" }
+    foreach ($c in $candidatos) {
+        if (Test-Path -LiteralPath $c) { return $c }
+    }
+    return $null
+}
+
 function Test-Docker {
+    param([int]$EsperaSegundos = 180)
     if (-not (Get-Command docker -ErrorAction SilentlyContinue)) {
-        throw "Docker nao encontrado. Instale o Docker Desktop e abra-o antes de continuar."
+        throw "Docker nao encontrado. Instale o Docker Desktop: https://www.docker.com/products/docker-desktop/"
     }
-    docker info *> $null
-    if ($LASTEXITCODE -ne 0) {
-        throw "O Docker Desktop nao esta rodando. Abra-o e tente de novo."
+    if (Test-DockerEngine) { return }
+
+    $exe = Find-DockerDesktop
+    if (-not $exe) {
+        throw "O Docker Desktop nao esta rodando. Abra-o, espere aparecer 'Engine running' e tente de novo."
     }
+    Write-Host "Docker Desktop fechado. Abrindo e aguardando o motor iniciar (pode levar 1 a 2 minutos)..." -NoNewline
+    Start-Process -FilePath $exe | Out-Null
+    $limite = (Get-Date).AddSeconds($EsperaSegundos)
+    while ((Get-Date) -lt $limite) {
+        Start-Sleep -Seconds 3
+        Write-Host "." -NoNewline
+        if (Test-DockerEngine) { Write-Host " ok"; return }
+    }
+    Write-Host ""
+    throw ("O Docker Desktop nao ficou pronto em $EsperaSegundos s. Abra-o manualmente e confira: " +
+        "1) se ele pede para aceitar os termos ou fazer login; " +
+        "2) se o WSL 2 esta instalado (rode 'wsl --status' no PowerShell); " +
+        "3) se a virtualizacao esta ativa na BIOS. Depois rode .\dev.ps1 setup de novo.")
 }
 
 function New-EnvFile {
