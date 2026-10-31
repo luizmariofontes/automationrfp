@@ -58,7 +58,7 @@ jobs:
       - name: Testes
         run: |
           uv run celery -A app.shared.celery_app worker -Q default -l warning --detach
-          RUN_INTEGRATION=1 CELERY_WORKER=1 uv run pytest --cov=app --cov-report=term-missing
+          REQUIRE_DB=1 RUN_INTEGRATION=1 CELERY_WORKER=1 uv run pytest --cov=app --cov-report=term-missing
 
   frontend:
     runs-on: ubuntu-latest
@@ -77,4 +77,5 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
+      - run: pnpm test
       - run: pnpm run build

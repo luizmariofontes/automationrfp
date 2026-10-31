@@ -2,13 +2,18 @@
 COMPOSE := docker compose
 BACKEND := $(COMPOSE) exec api
 
-.PHONY: help env up down logs ps migrate migration seed test test-integration lint fmt eval fidelity shell-api
+.PHONY: help setup env up down logs ps migrate migration seed test test-integration lint fmt eval fidelity shell-api
 
 help: ## Lista os comandos
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 env: ## Cria o .env a partir do .env.example (se ainda não existir)
 	@test -f .env || cp .env.example .env
+
+setup: up ## Primeira vez: sobe tudo, migra e cria os usuários de teste
+	@echo "Aguardando a API..."; for i in $$(seq 1 45); do curl -sf localhost:8000/health >/dev/null && break; sleep 2; done
+	$(BACKEND) alembic upgrade head
+	$(BACKEND) python -m app.seed
 
 up: env ## Sobe todos os serviços
 	$(COMPOSE) up -d --build
@@ -32,14 +37,15 @@ migrate: ## Aplica as migrações do Alembic
 migration: ## Cria uma migração: make migration m="descricao"
 	$(BACKEND) alembic revision --autogenerate -m "$(m)"
 
-seed: ## Dados de exemplo (implementado no sprint 2)
-	@echo "seed: disponível a partir do sprint 2 (cadastros)."
+seed: ## Cria os usuários de teste (senha: rfp-local-123)
+	$(BACKEND) python -m app.seed
 
-test: ## Testes unitários, de contrato e de fronteira
-	$(BACKEND) pytest
+test: ## Testes do backend e do front
+	$(BACKEND) env REQUIRE_DB=1 pytest
+	$(COMPOSE) exec frontend pnpm test
 
 test-integration: ## Testes com Postgres, Redis e worker reais
-	$(BACKEND) env RUN_INTEGRATION=1 CELERY_WORKER=1 pytest -m integration
+	$(BACKEND) env REQUIRE_DB=1 RUN_INTEGRATION=1 CELERY_WORKER=1 pytest -m integration
 
 lint: ## ruff, mypy, import-linter e checagem do front
 	$(BACKEND) ruff check .

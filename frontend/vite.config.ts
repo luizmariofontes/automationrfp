@@ -10,6 +10,8 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,
+    // No Docker Desktop com pastas do Windows, as mudanças só são vistas por polling.
+    watch: process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 300 } : undefined,
     proxy: {
       "/api": { target: apiTarget, changeOrigin: true },
       "/health": { target: apiTarget, changeOrigin: true },

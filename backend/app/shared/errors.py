@@ -39,6 +39,11 @@ class ConflictError(AppError):
     code = "conflito"
 
 
+class UnauthorizedError(AppError):
+    status_code = HTTPStatus.UNAUTHORIZED
+    code = "nao_autenticado"
+
+
 class ForbiddenError(AppError):
     status_code = HTTPStatus.FORBIDDEN
     code = "acesso_negado"

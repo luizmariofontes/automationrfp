@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,6 +35,29 @@ class Settings(BaseSettings):
 
     # Tempo máximo das checagens de prontidão (segundos)
     readiness_timeout: float = 2.0
+
+    # ------------------------------------------------------------ autenticação
+    # Login local (e-mail e senha) para testes. Proibido em produção: lá só SSO.
+    auth_local_enabled: bool = True
+    # SSO (OIDC) entra quando o provedor da empresa for configurado.
+    auth_oidc_enabled: bool = False
+    session_cookie_name: str = "rfp_sessao"
+    session_ttl_hours: int = 12
+    # Em produção e homologação o cookie só trafega por HTTPS.
+    session_cookie_secure: bool = False
+    login_max_falhas: int = 5
+    login_bloqueio_minutos: int = 15
+    # Senha dos usuários de exemplo criados pelo seed (apenas ambiente local).
+    seed_password: str = Field(default="rfp-local-123", repr=False)
+
+    @model_validator(mode="after")
+    def _regras_de_ambiente(self) -> "Settings":
+        if self.app_env == "producao":
+            if self.auth_local_enabled:
+                raise ValueError("AUTH_LOCAL_ENABLED não pode ser true em produção (use SSO).")
+            if not self.session_cookie_secure:
+                raise ValueError("SESSION_COOKIE_SECURE deve ser true em produção.")
+        return self
 
 
 @lru_cache

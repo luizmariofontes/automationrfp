@@ -6,19 +6,41 @@ Arquitetura e plano: documento "Plano de Implementação do Piloto — Automaç�
 
 ## Estado atual
 
-**Sprint 1 — Esqueleto (concluído).** Estrutura de módulos, API com saúde e erros padronizados, logs JSON, banco com migrações, Celery, Docker Compose, CI e front-end base.
+- **Sprint 1 — Esqueleto (concluído, `v0.1.0`).** Estrutura de módulos, API com saúde e erros padronizados, logs JSON, banco com migrações, Celery, Docker Compose, CI e front-end base.
+- **Sprint 2 — em andamento.** Login local para testes (`v0.2.0-alpha`): usuários, papéis, sessões, tela de login e proteção de rotas. Falta: SSO, auditoria, cadastros e telas de administração.
 
-## Como rodar
+## Como rodar (Windows, PowerShell)
 
-Pré-requisitos (no Windows, dentro do WSL2 com Ubuntu 24.04): Docker, `make`, Git. Para rodar fora do Docker: Python 3.12 com [uv](https://docs.astral.sh/uv/) e Node 22 com pnpm.
+Pré-requisitos: [Docker Desktop](https://www.docker.com/products/docker-desktop/) aberto e Git. Nada mais precisa ser instalado: Python, Node e bancos rodam nos containers.
 
-```bash
-make up        # cria o .env e sobe api, workers, front, postgres, redis, minio e mailpit
-make migrate   # aplica as migrações
-make test      # testes do backend
-make lint      # ruff, mypy, import-linter e lint do front
-make help      # todos os comandos
+```powershell
+.\dev.ps1 setup    # primeira vez: cria o .env, sobe tudo, aplica as migrações e cria os usuários de teste
+.\dev.ps1 up       # nas próximas vezes
+.\dev.ps1 test     # testes do backend e do front
+.\dev.ps1 lint     # ruff, mypy, import-linter e lint do front
+.\dev.ps1 ajuda    # todos os comandos
 ```
+
+Se o Windows bloquear o script ("execução de scripts foi desabilitada"), rode uma vez:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+No Linux, macOS ou WSL, os mesmos comandos existem no `Makefile` (`make setup`, `make up`, `make test`...).
+
+### Login local para testes
+
+O `setup` (ou `.\dev.ps1 seed`) cria um usuário por papel, todos com a senha `rfp-local-123`:
+
+| E-mail | Papel |
+| --- | --- |
+| admin@rfp.local | Administrador (acesso a tudo) |
+| analista@rfp.local | Analista |
+| validador@rfp.local | Validador |
+| conhecimento@rfp.local | Gestor de conhecimento |
+
+O login local é controlado por `AUTH_LOCAL_ENABLED` no `.env`. Com `APP_ENV=producao`, a aplicação se recusa a iniciar se ele estiver ligado; lá o acesso será só pelo SSO da empresa. Após 5 senhas erradas seguidas, o usuário fica bloqueado por 15 minutos.
 
 | Serviço | Endereço |
 | --- | --- |
@@ -30,17 +52,23 @@ make help      # todos os comandos
 
 ### Sem Docker
 
-```bash
+Precisa de Python 3.12 com [uv](https://docs.astral.sh/uv/), Node 22 com pnpm, Postgres 16 com pgvector e Redis. Funciona no PowerShell e no Linux:
+
+```powershell
 cd backend
 uv sync
-uv run alembic upgrade head          # precisa de Postgres com pgvector e Redis
+uv run alembic upgrade head
+uv run python -m app.seed
 uv run uvicorn app.main:app --reload
-uv run celery -A app.shared.celery_app worker -Q default,cobranca -l info
+# em outro terminal:
+uv run celery -A app.shared.celery_app worker -Q default,cobranca -l info --pool solo
 
-cd ../frontend
+cd ..\frontend
 pnpm install
 pnpm dev
 ```
+
+No Windows, o Celery precisa de `--pool solo` fora do Docker.
 
 ## Estrutura
 

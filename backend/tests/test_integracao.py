@@ -23,7 +23,7 @@ def test_readiness_com_servicos_reais(client):
     assert resp.json()["checks"] == {"postgres": "ok", "redis": "ok"}
 
 
-def test_extensoes_instaladas_pela_migracao():
+def test_extensoes_instaladas_pela_migracao(banco):
     with get_engine().connect() as conn:
         exts = set(conn.execute(text("SELECT extname FROM pg_extension")).scalars())
     assert {"vector", "unaccent"} <= exts

@@ -13,6 +13,8 @@ x-backend: &backend
     MINIO_ENDPOINT: minio:9000
     SMTP_HOST: mailpit
     SMTP_PORT: "1025"
+    # Pastas montadas do Windows não avisam mudanças ao container: o reload usa polling.
+    WATCHFILES_FORCE_POLLING: "true"
   volumes:
     - ./backend:/app
     - /app/.venv
@@ -46,6 +48,7 @@ services:
     build: ./frontend
     environment:
       API_PROXY_TARGET: http://api:8000
+      VITE_USE_POLLING: "true"
     volumes:
       - ./frontend:/app
       - /app/node_modules

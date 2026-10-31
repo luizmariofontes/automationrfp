@@ -1,4 +1,4 @@
-# Instale com: pipx install pre-commit && pre-commit install
+# Funciona no PowerShell e no Linux. Instale com: pipx install pre-commit; pre-commit install
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -23,18 +23,19 @@ repos:
     hooks:
       - id: mypy
         name: mypy
-        entry: bash -c "cd backend && uv run mypy app"
+        entry: uv run --directory backend mypy app
         language: system
         pass_filenames: false
         files: ^backend/app/
       - id: lint-imports
         name: import-linter
-        entry: bash -c "cd backend && uv run lint-imports"
+        entry: uv run --directory backend lint-imports
         language: system
         pass_filenames: false
         files: ^backend/app/
       - id: prettier
         name: prettier
-        entry: bash -c "cd frontend && pnpm exec prettier --write --ignore-unknown \"$@\"" --
+        entry: pnpm --dir frontend exec prettier --write src
         language: system
+        pass_filenames: false
         files: ^frontend/src/
