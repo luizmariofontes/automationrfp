@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+/* Tokens da interface. A biblioteca de componentes (shadcn/ui) entra no sprint 2. */
+@theme {
+  --color-marca: #1f5fbf;
+  --color-marca-suave: #e7f1fb;
+  --color-tinta: #1d1d1b;
+  --color-tinta-suave: #5f5e5a;
+  --color-borda: #e2e0da;
+  --color-fundo: #faf9f7;
+  --color-ok: #2f7d32;
+  --color-falha: #b42318;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-fundo);
+  color: var(--color-tinta);
+}

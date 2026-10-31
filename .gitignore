@@ -1,0 +1,29 @@
+# Ambiente
+.env
+.venv/
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Front
+frontend/dist/
+
+# Editores e SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Nunca versionar arquivos de clientes
+*.xlsx
+*.xlsm
+!backend/tests/fixtures/**/*.xlsx
+.transfer/

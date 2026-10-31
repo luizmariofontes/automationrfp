@@ -1,0 +1,4 @@
+# Finais de linha LF em tudo (evita scripts quebrados ao clonar no Windows)
+* text=auto eol=lf
+*.png binary
+*.xlsx binary
