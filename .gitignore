@@ -1,29 +1,94 @@
-# Ambiente
+# ---------------------------------------------------------------- Segredos
+# Só o .env.example (sem segredos reais) vai para o repositório.
 .env
-.venv/
-node_modules/
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
 
-# Python
+# ---------------------------------------------------------------- Dados de clientes
+# RFPs, RFIs e documentos da base de conhecimento nunca entram no Git.
+# Exceção: fixtures sintéticas de teste.
+*.xlsx
+*.xlsm
+*.xlsb
+*.xls
+*.csv
+*.docx
+*.doc
+*.pdf
+!backend/tests/fixtures/**/*.xlsx
+!backend/tests/fixtures/**/*.xlsm
+!backend/tests/fixtures/**/*.csv
+!backend/tests/fixtures/**/*.docx
+!backend/tests/fixtures/**/*.pdf
+
+# Dumps de banco e dados locais
+*.sql
+*.dump
+*.bak
+*.sqlite
+*.sqlite3
+*.db
+dump.rdb
+uploads/
+data/
+
+# ---------------------------------------------------------------- Pacotes temporários
+.transfer/
+*.tar.gz
+*.tgz
+*.zip
+
+# ---------------------------------------------------------------- Python
+.venv/
+venv/
 __pycache__/
 *.py[cod]
+*.egg-info/
+build/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.import_linter_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
+celerybeat-schedule*
+celerybeat.pid
 
-# Front
-frontend/dist/
+# ---------------------------------------------------------------- Node e front-end
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.local
+.vite/
+vite.config.ts.timestamp-*
+.pnpm-store/
+npm-debug.log*
+pnpm-debug.log*
 
-# Editores e SO
+# Pacotes gerados da extensão de navegador
+*.crx
+extension/release/
+
+# ---------------------------------------------------------------- Logs
+*.log
+logs/
+
+# ---------------------------------------------------------------- Editores e sistema
 .vscode/*
 !.vscode/extensions.json
 .idea/
+*.swp
 .DS_Store
 Thumbs.db
+Desktop.ini
 
-# Nunca versionar arquivos de clientes
-*.xlsx
-*.xlsm
-!backend/tests/fixtures/**/*.xlsx
-.transfer/
+# ---------------------------------------------------------------- Ferramentas locais
+.claude/
