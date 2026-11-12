@@ -17,6 +17,11 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://rfp:rfp@localhost:5432/rfp"
     redis_url: str = "redis://localhost:6379/0"
+    # Papel do Postgres usado pelo agente: só lê o schema `agente` (ver app/shared/db.py).
+    agente_db_role: str = Field(default="rfp_agente", pattern=r"^[a-z_][a-z0-9_]{0,62}$")
+    # Login próprio do agente. Vazio: usa DATABASE_URL e assume o papel com SET ROLE,
+    # o que basta no ambiente local. Fora dele, use um login que só tenha esse papel.
+    agente_database_url: str = ""
 
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "rfp"

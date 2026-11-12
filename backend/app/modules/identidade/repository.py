@@ -19,6 +19,17 @@ class IdentidadeRepository:
     def usuario_por_id(self, usuario_id: UUID) -> UsuarioModel | None:
         return self.db.get(UsuarioModel, usuario_id)
 
+    def listar(self, apenas_ativos: bool) -> list[UsuarioModel]:
+        consulta = select(UsuarioModel).order_by(UsuarioModel.nome)
+        if apenas_ativos:
+            consulta = consulta.where(UsuarioModel.ativo.is_(True))
+        return list(self.db.scalars(consulta))
+
+    def por_ids(self, ids: set[UUID]) -> list[UsuarioModel]:
+        if not ids:
+            return []
+        return list(self.db.scalars(select(UsuarioModel).where(UsuarioModel.id.in_(ids))))
+
     def adicionar(self, obj: UsuarioModel | SessaoModel) -> None:
         self.db.add(obj)
 

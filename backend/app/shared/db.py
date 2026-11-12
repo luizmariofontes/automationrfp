@@ -6,8 +6,9 @@ Os nomes das tabelas usam o prefixo do módulo (ex.: `cadastros_cliente`).
 
 from collections.abc import Iterator
 from functools import lru_cache
+from typing import Any
 
-from sqlalchemy import Engine, MetaData, create_engine, text
+from sqlalchemy import Engine, MetaData, create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.shared.config import get_settings
@@ -42,6 +43,41 @@ def get_session() -> Iterator[Session]:
         yield session
     finally:
         session.close()
+
+
+@lru_cache
+def get_agente_engine() -> Engine:
+    """Conexões do agente: papel do Postgres que só lê o schema `agente`.
+
+    É a camada de banco do isolamento do agente. Com AGENTE_DATABASE_URL, a conexão já
+    entra com um login restrito. Sem ela, usa o login da aplicação e assume o papel a
+    cada conexão nova.
+    """
+    settings = get_settings()
+    if settings.agente_database_url:
+        return create_engine(settings.agente_database_url, pool_pre_ping=True, future=True)
+
+    engine = create_engine(settings.database_url, pool_pre_ping=True, future=True)
+    papel = settings.agente_db_role  # validado na configuração: só letras, números e _
+
+    @event.listens_for(engine, "connect")
+    def _assumir_papel(dbapi_conn: Any, _record: Any) -> None:
+        # Fora de transação, para o SET ROLE valer pela conexão inteira e sobreviver
+        # ao rollback que o pool faz ao devolver a conexão.
+        anterior = dbapi_conn.autocommit
+        dbapi_conn.autocommit = True
+        try:
+            with dbapi_conn.cursor() as cursor:
+                cursor.execute(f'SET ROLE "{papel}"')
+        finally:
+            dbapi_conn.autocommit = anterior
+
+    return engine
+
+
+@lru_cache
+def get_agente_sessionmaker() -> sessionmaker[Session]:
+    return sessionmaker(bind=get_agente_engine(), autoflush=False, expire_on_commit=False)
 
 
 def ping_database(timeout: float) -> None:

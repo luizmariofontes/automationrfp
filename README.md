@@ -2,7 +2,7 @@
 
 Automação do preenchimento de RFPs e RFIs com IA. A ferramenta responde questionários em Excel ou na web a partir de uma base de documentos (RAG) e de uma biblioteca de respostas aprovadas, distribui as validações às equipes, cobra os prazos e expurga o arquivo original quando a requisição é concluída.
 
-> **Status: piloto em desenvolvimento (`v0.2.0-alpha`).** O esqueleto da aplicação e o login local estão prontos. As funções de negócio descritas abaixo fazem parte do plano e ainda não estão implementadas; veja [Estado atual](#estado-atual).
+> **Status: piloto em desenvolvimento (`v0.2.0-alpha`).** Estão prontos o esqueleto da aplicação, o login local, os cadastros com auditoria e os contratos que isolam o agente. As demais funções de negócio descritas abaixo fazem parte do plano e ainda não estão implementadas; veja [Estado atual](#estado-atual).
 
 ## Sumário
 
@@ -61,13 +61,16 @@ flowchart LR
 | Banco com migrações, Celery, Docker Compose e CI | Pronto |
 | Front-end base (React) com tela de login e rotas protegidas | Pronto |
 | Login local para testes: usuários, papéis, sessões e bloqueio por tentativas | Pronto |
-| SSO (OIDC), auditoria, cadastros e telas de administração | Próximo passo |
-| Ingestão de documentos, busca, Excel, anonimização e geração de respostas | Planejado |
+| Auditoria das ações de administrador (quem, quando, o quê e quais campos; sem valores) | Pronto |
+| Cadastros e telas de administração: clientes, equipes, membros e regras de escalonamento | Pronto |
+| Contratos: `VisaoAgente`, porta `Anonymizer`, modelo canônico de questionário, portas de infraestrutura e outbox de eventos | Pronto |
+| Schema `agente`, papel do Postgres restrito a ele e regra no import-linter | Pronto |
 | Gateway de LLM com política de envio por configuração | Pronto |
-| Provedores de LLM e embeddings | Só o adaptador `fake`, sem chamadas externas |
-| Cobrança, chat, expurgo, extensão web e deploy | Planejado |
+| Provedores de LLM, embeddings, armazenamento, notificações, chamados e anonimização | Só adaptadores `fake`, sem chamadas externas |
+| Ingestão de documentos, busca, Excel, anonimização real e geração de respostas | Próximo passo (sprint 3 em diante) |
+| SSO (OIDC), cobrança, chat, expurgo, extensão web e deploy | Planejado |
 
-Os módulos além de `identidade` já têm pacote e rotas registradas, mas ainda não têm regras de negócio.
+Além de `identidade`, `cadastros` e `auditoria`, os módulos já têm pacote e rotas registradas, mas ainda não têm regras de negócio. As regras de escalonamento já podem ser cadastradas; os envios começam com o worker de cobrança (sprints 10 a 12).
 
 ## Arquitetura
 
@@ -212,7 +215,8 @@ No Windows, use `.\dev.ps1 <comando>`; nos demais sistemas, `make <comando>`.
 │   ├── app/
 │   │   ├── main.py        # raiz de composição
 │   │   ├── seed.py        # usuários de teste
-│   │   ├── shared/        # configuração, banco, logs, erros, Celery, saúde
+│   │   ├── shared/        # configuração, banco, logs, erros, Celery, saúde e contratos
+│   │   │                  # (agente.py, anonimizacao.py, portas.py, eventos.py, llm.py)
 │   │   ├── modules/       # um pacote por módulo de negócio
 │   │   └── adapters/      # LLM, embeddings, storage, e-mail, notificações, chamados
 │   ├── migrations/        # Alembic
@@ -270,7 +274,7 @@ Nunca chegam ao agente: nome, sigla, CNPJ, domínios e contatos do cliente; o ar
 O isolamento é garantido em quatro camadas:
 
 1. **Contrato.** `VisaoAgente` é o único tipo que `motor_respostas` aceita de uma requisição, e recusa campos extras.
-2. **Banco.** A memória do agente fica no schema `agente`. O worker do agente usa um papel do Postgres sem permissão nos schemas de cadastros, requisições, comunicação e privacidade.
+2. **Banco.** A memória do agente fica no schema `agente`. O worker do agente usa o papel `rfp_agente` do Postgres, que só lê esse schema e não tem permissão em nenhuma tabela de cadastros, requisições, comunicação e privacidade. No ambiente local a aplicação assume o papel com `SET ROLE`; fora dele, `AGENTE_DATABASE_URL` deve apontar para um login que só tenha esse papel.
 3. **Código.** O import-linter proíbe `motor_respostas` de importar `cadastros`, `requisicoes`, `comunicacao` e `privacidade`. Só `privacidade` escreve no schema `agente`.
 4. **Teste de vazamento.** Nomes fictícios (canários) são plantados nas planilhas de teste. Se um deles aparecer em prompt, log ou schema `agente`, o CI falha.
 
@@ -332,12 +336,12 @@ Cada chamada gera um registro `llm_chamada` no log com provedor, modelo, retenç
 
 - [x] Login local para testes, com papéis, sessões e bloqueio por tentativas
 - [x] **(novo)** Gateway de LLM com política de envio por configuração
-- [ ] Módulo de auditoria e registro automático das ações de admin
-- [ ] Cadastros e telas de admin: clientes (sigla, nomes, CNPJ, domínios, apelidos), equipes com escopo, membros e regras de escalonamento
-- [ ] **(novo)** Modelo de implantação padrão no cadastro do cliente
-- [ ] Contratos: portas, modelo canônico, eventos, outbox e adaptadores falsos
-- [ ] **(novo)** Contrato `VisaoAgente` e porta `Anonymizer` revisada, com linha inicial e marcadores tipados
-- [ ] **(novo)** Schema `agente`, papel do Postgres sem acesso aos demais schemas e regra no import-linter
+- [x] Módulo de auditoria e registro automático das ações de admin
+- [x] Cadastros e telas de admin: clientes (sigla, nomes, CNPJ, domínios, apelidos), equipes com escopo, membros e regras de escalonamento
+- [x] **(novo)** Modelo de implantação padrão no cadastro do cliente
+- [x] Contratos: portas, modelo canônico, eventos, outbox e adaptadores falsos
+- [x] **(novo)** Contrato `VisaoAgente` e porta `Anonymizer` revisada, com linha inicial e marcadores tipados
+- [x] **(novo)** Schema `agente`, papel do Postgres sem acesso aos demais schemas e regra no import-linter
 - [ ] Pedir ao TI o registro do aplicativo para o SSO (a integração fica para o sprint 15)
 
 **Pronto quando:** o admin cadastra 3 equipes e 2 clientes com as ações na auditoria, e um teste prova que o papel do agente não lê nenhuma tabela de cliente.
