@@ -6,9 +6,10 @@ Outros módulos usam daqui:
 - `criar_usuario`: usado pelo seed e, no sprint 2, pela administração.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session
@@ -27,8 +28,10 @@ __all__ = [
     "UsuarioAutenticado",
     "criar_usuario",
     "exigir_papeis",
+    "listar_usuarios",
     "token_da_sessao",
     "usuario_atual",
+    "usuarios_por_ids",
 ]
 
 log = get_logger(__name__)
@@ -85,6 +88,14 @@ def criar_usuario(
     db.flush()
     log.info("usuario_criado", usuario_id=str(usuario.id), papeis=usuario.papeis)
     return _para_autenticado(usuario)
+
+
+def listar_usuarios(db: Session, *, apenas_ativos: bool = True) -> list[UsuarioAutenticado]:
+    return [_para_autenticado(u) for u in IdentidadeRepository(db).listar(apenas_ativos)]
+
+
+def usuarios_por_ids(db: Session, ids: Iterable[UUID]) -> dict[UUID, UsuarioAutenticado]:
+    return {u.id: _para_autenticado(u) for u in IdentidadeRepository(db).por_ids(set(ids))}
 
 
 # ---------------------------------------------------------------- login local

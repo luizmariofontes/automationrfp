@@ -12,6 +12,7 @@ const ANALISTA = { id: "1", email: "analista@rfp.local", nome: "Ana", papeis: ["
 const ADMIN = { id: "2", email: "admin@rfp.local", nome: "Adm", papeis: ["admin"] };
 const PRONTO = { status: 200, body: { status: "ok", checks: { postgres: "ok", redis: "ok" } } };
 const PROVEDORES = { status: 200, body: { local: true, oidc: false } };
+const VAZIO = { status: 200, body: [] };
 const SEM_SESSAO = { status: 401, body: { error: { code: "nao_autenticado", message: "x" } } };
 
 function mockApi(rotas: Rotas) {
@@ -118,9 +119,14 @@ describe("com sessão", () => {
   });
 
   it("administrador vê todo o menu e o status da API", async () => {
-    mockApi({ "/api/v1/auth/me": { status: 200, body: ADMIN }, "/api/v1/health/ready": PRONTO });
+    mockApi({
+      "/api/v1/auth/me": { status: 200, body: ADMIN },
+      "/api/v1/health/ready": PRONTO,
+      "/api/v1/cadastros/clientes": VAZIO,
+    });
     renderAt("/admin");
     expect(await screen.findByRole("link", { name: "Administração" })).toBeInTheDocument();
+    expect(await screen.findByText("Nenhum cliente cadastrado.")).toBeInTheDocument();
     expect(await screen.findByText("Sistema operacional")).toBeInTheDocument();
   });
 
@@ -128,6 +134,7 @@ describe("com sessão", () => {
     mockApi({
       "/api/v1/auth/me": { status: 200, body: ADMIN },
       "/api/v1/health/ready": { status: 503, body: { status: "falha", checks: {} } },
+      "/api/v1/cadastros/clientes": VAZIO,
     });
     renderAt("/admin");
     expect(await screen.findByText("Sistema indisponível")).toBeInTheDocument();

@@ -30,6 +30,8 @@ celery_app.conf.update(
     timezone="America/Sao_Paulo",
     enable_utc=True,
     result_expires=3600,
-    # O agendamento (Celery Beat) é preenchido pelo módulo de cobrança no Sprint 9.
-    beat_schedule={},
+    # O módulo de cobrança acrescenta os próprios agendamentos nos sprints 10 a 12.
+    beat_schedule={
+        "despachar-outbox": {"task": "sistema.despachar_outbox", "schedule": 30.0},
+    },
 )

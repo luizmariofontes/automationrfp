@@ -43,7 +43,8 @@ select = ["E", "F", "W", "I", "B", "UP", "N", "S", "SIM", "RUF"]
 ignore = ["S101"]  # assert é permitido nos testes
 
 [tool.ruff.lint.per-file-ignores]
-"migrations/*" = ["N999", "E501"]
+# S608: as migrações montam DDL com constantes do próprio arquivo.
+"migrations/*" = ["N999", "E501", "S608"]
 
 # ---------------------------------------------------------------- mypy
 [tool.mypy]
@@ -85,3 +86,16 @@ name = "Adaptadores não dependem de módulos de negócio"
 type = "forbidden"
 source_modules = ["app.adapters"]
 forbidden_modules = ["app.modules"]
+
+# Camada "código" do isolamento do agente: ele não conhece clientes, requisições,
+# conversas nem o cofre de correspondência. De uma requisição, só recebe `VisaoAgente`.
+[[tool.importlinter.contracts]]
+name = "O agente não importa módulos que guardam dados de clientes"
+type = "forbidden"
+source_modules = ["app.modules.motor_respostas"]
+forbidden_modules = [
+    "app.modules.cadastros",
+    "app.modules.requisicoes",
+    "app.modules.comunicacao",
+    "app.modules.privacidade",
+]

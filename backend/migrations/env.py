@@ -7,6 +7,7 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.modules import MODULES
+from app.shared import eventos  # noqa: F401  (registra a tabela da outbox)
 from app.shared.config import get_settings
 from app.shared.db import Base
 
